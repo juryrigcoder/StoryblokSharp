@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F1010FFD-4AA2-4248-BDAA-84528C553718}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryblokSharp", "src\StoryblokSharp\StoryblokSharp.csproj", "{EF5B65BF-5E22-4658-B09B-48E778891EF4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{57109572-62CE-4CA0-8E28-682AB777B00B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryblokSharptTests", "tests\StoryblokSharptTests\StoryblokSharptTests.csproj", "{40D18101-45B9-4710-AD28-7E8DF267E919}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF5B65BF-5E22-4658-B09B-48E778891EF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF5B65BF-5E22-4658-B09B-48E778891EF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF5B65BF-5E22-4658-B09B-48E778891EF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF5B65BF-5E22-4658-B09B-48E778891EF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40D18101-45B9-4710-AD28-7E8DF267E919}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40D18101-45B9-4710-AD28-7E8DF267E919}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40D18101-45B9-4710-AD28-7E8DF267E919}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40D18101-45B9-4710-AD28-7E8DF267E919}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EF5B65BF-5E22-4658-B09B-48E778891EF4} = {F1010FFD-4AA2-4248-BDAA-84528C553718}
+		{40D18101-45B9-4710-AD28-7E8DF267E919} = {57109572-62CE-4CA0-8E28-682AB777B00B}
+	EndGlobalSection
+EndGlobal

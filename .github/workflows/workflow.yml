@@ -1,0 +1,79 @@
+name: Build
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+
+jobs:
+  qodana:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # Fetch version from csproj
+      - name: Get Version
+        id: version
+        shell: bash
+        run: |
+            VERSION=$(sed -n 's/.*<[vV]ersion>\(.*\)<\/[vV]ersion>.*/\1/p' StoryblokSharp/StoryblokSharp.csproj || echo "1.0.1")
+            if [ -z "$VERSION" ]; then
+            VERSION="1.0.1"
+            fi
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Version: $VERSION"
+      
+      # Setup .NET 9 SDK with NuGet source
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          source-url: https://api.nuget.org/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          
+      # Restore dependencies with explicit source
+      - name: Restore Dependencies
+        run: dotnet restore src/StoryblokSharp/StoryblokSharp.csproj --source https://api.nuget.org/v3/index.json
+        
+      # Build the .NET Project
+      - name: Build .NET Project
+        run: dotnet build src/StoryblokSharp/StoryblokSharp.csproj --configuration Release
+        
+      # Pack the .NET Project with version
+      - name: Pack .NET Project
+        run: dotnet pack src/StoryblokSharp/StoryblokSharp.csproj --configuration Release --output ./artifacts /p:Version=${{ steps.version.outputs.version }}
+        
+      - name: Upload NuGet package to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: nugetPackage
+          path: ./artifacts/*.nupkg
+
+  release:
+    runs-on: ubuntu-latest    
+    needs: qodana
+    if: github.ref == 'refs/heads/main'
+    steps:  
+      - name: Download nuget package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nugetPackage
+          path: artifacts
+          
+      - name: Prep packages
+        run: dotnet nuget add source --username juryrigcoder --password ${{ secrets.NUGET_PACKAGE_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/juryrigcoder/index.json"
+        
+      - name: Push package to GitHub packages 
+        run: dotnet nuget push artifacts/*.nupkg --api-key ${{ secrets.NUGET_PACKAGE_TOKEN }} --source "github"

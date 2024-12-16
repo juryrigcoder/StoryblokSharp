@@ -8,7 +8,7 @@ on:
       - 'releases/*'
 
 jobs:
-  qodana:
+  build:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -28,9 +28,9 @@ jobs:
         id: version
         shell: bash
         run: |
-            VERSION=$(sed -n 's/.*<[vV]ersion>\(.*\)<\/[vV]ersion>.*/\1/p' StoryblokSharp/StoryblokSharp.csproj || echo "1.0.1")
+            VERSION=$(sed -n 's/.*<[vV]ersion>\(.*\)<\/[vV]ersion>.*/\1/p' src/StoryblokSharp/StoryblokSharp.csproj || echo "0.0.1")
             if [ -z "$VERSION" ]; then
-            VERSION="1.0.1"
+            VERSION="0.0.1"
             fi
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "Version: $VERSION"
@@ -63,7 +63,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest    
-    needs: qodana
+    needs: build
     if: github.ref == 'refs/heads/main'
     steps:  
       - name: Download nuget package artifact
@@ -77,3 +77,11 @@ jobs:
         
       - name: Push package to GitHub packages 
         run: dotnet nuget push artifacts/*.nupkg --api-key ${{ secrets.NUGET_PACKAGE_TOKEN }} --source "github"
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ needs.build.outputs.version }}
+          name: Release v${{ needs.build.outputs.version }}
+          artifacts: "artifacts/*.nupkg"
+          token: ${{ secrets.NUGET_PACKAGE_TOKEN }}

@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{57109572
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryblokSharptTests", "tests\StoryblokSharptTests\StoryblokSharptTests.csproj", "{40D18101-45B9-4710-AD28-7E8DF267E919}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{84012484-581E-46BE-9408-54A61DED230A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StoryblokSharpExample", "samples\StoryblokSharpExample\StoryblokSharpExample.csproj", "{772148DE-ACE8-4020-B739-C8A908AF0B67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +32,14 @@ Global
 		{40D18101-45B9-4710-AD28-7E8DF267E919}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40D18101-45B9-4710-AD28-7E8DF267E919}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40D18101-45B9-4710-AD28-7E8DF267E919}.Release|Any CPU.Build.0 = Release|Any CPU
+		{772148DE-ACE8-4020-B739-C8A908AF0B67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{772148DE-ACE8-4020-B739-C8A908AF0B67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{772148DE-ACE8-4020-B739-C8A908AF0B67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{772148DE-ACE8-4020-B739-C8A908AF0B67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{EF5B65BF-5E22-4658-B09B-48E778891EF4} = {F1010FFD-4AA2-4248-BDAA-84528C553718}
 		{40D18101-45B9-4710-AD28-7E8DF267E919} = {57109572-62CE-4CA0-8E28-682AB777B00B}
+		{772148DE-ACE8-4020-B739-C8A908AF0B67} = {84012484-581E-46BE-9408-54A61DED230A}
 	EndGlobalSection
 EndGlobal

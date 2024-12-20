@@ -43,13 +43,15 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           
-      # Restore dependencies with explicit source
+      # Restore dependencies for both main and test projects
       - name: Restore Dependencies
-        run: dotnet restore src/StoryblokSharp/StoryblokSharp.csproj --source https://api.nuget.org/v3/index.json
+        run: |
+          dotnet restore src/StoryblokSharp/StoryblokSharp.csproj
+          dotnet restore tests/StoryblokSharptTests/StoryblokSharptTests.csproj
         
       # Run tests
       - name: Run Tests
-        run: dotnet test tests/StoryblokSharptTests/StoryblokSharptTests.csproj --configuration Release --no-restore
+        run: dotnet test tests/StoryblokSharptTests/StoryblokSharptTests.csproj --configuration Release
 
       # Build the .NET Project
       - name: Build .NET Project

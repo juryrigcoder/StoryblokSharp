@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace StoryblokSharp.Http;
 
 /// <summary>
@@ -43,4 +45,13 @@ public interface IStoryblokHttpClient
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The deserialized response</returns>
     Task<T> DeleteAsync<T>(string endpoint, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Sets the logger instance for the HTTP client
+    /// </summary>
+    /// <param name="logger">The logger instance to use for logging HTTP operations</param>
+    /// <remarks>
+    /// The logger is used to track HTTP requests, responses, and any errors that occur during API operations.
+    /// </remarks>
+    void SetLogger(ILogger logger);
 }

@@ -3,7 +3,7 @@ namespace StoryblokSharp.Models.RichText;
 /// <summary>
 /// Represents rich text content structure
 /// </summary>
-public class RichTextContent
+public record RichTextContent
 {
     public required string Type { get; init; }
     public RichTextContent[]? Content { get; init; }

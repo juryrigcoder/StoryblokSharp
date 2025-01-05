@@ -1,60 +1,22 @@
 using System.Text.Json.Serialization;
+using StoryblokSharp.Models.Common;
 
 namespace StoryblokSharp.Models.Stories;
 
 /// <summary>
 /// Represents a Storyblok story response
 /// </summary>
-public record StoryResponse<T> where T : class
+public record StoryResponse<T> : StoryblokResponse<T> where T : class
 {
-    /// <summary>
-    /// The story content
-    /// </summary>
     [JsonPropertyName("story")]
     public required Story<T> Story { get; init; }
-
-    /// <summary>
-    /// Cache version
-    /// </summary>
-    [JsonPropertyName("cv")]
-    public required long Cv { get; init; }
-
-    /// <summary>
-    /// Related stories
-    /// </summary>
-    [JsonPropertyName("rels")]
-    public Story<T>[] Rels { get; init; } = Array.Empty<Story<T>>();
-
-    /// <summary>
-    /// Story links
-    /// </summary>
-    [JsonPropertyName("links")]
-    public Link[] Links { get; init; } = Array.Empty<Link>();
 }
 
 /// <summary>
 /// Represents a single Storyblok story
 /// </summary>
-public record Story<T> where T : class
+public record Story<T> : StoryblokEntity where T : class
 {
-    /// <summary>
-    /// Story ID
-    /// </summary>
-    [JsonPropertyName("id")]
-    public required long Id { get; init; }
-
-    /// <summary>
-    /// Story UUID
-    /// </summary>
-    [JsonPropertyName("uuid")] 
-    public required string Uuid { get; init; }
-
-    /// <summary>
-    /// Story name
-    /// </summary>
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
-
     /// <summary>
     /// Story slug
     /// </summary>
@@ -118,9 +80,9 @@ public record Story<T> where T : class
     /// <summary>
     /// List of tags
     /// </summary>
-    [JsonPropertyName("tag_list")] 
+    [JsonPropertyName("tag_list")]
     public string[] TagList { get; init; } = Array.Empty<string>();
-    
+
     /// <summary>
     /// Group ID
     /// </summary>
@@ -162,31 +124,13 @@ public record StoryblokComponent
 /// <summary>
 /// Represents story links
 /// </summary>
-public record Link
+public record Link : StoryblokEntity
 {
-    /// <summary>
-    /// Link ID
-    /// </summary>
-    [JsonPropertyName("id")]
-    public required long Id { get; init; }
-
     /// <summary>
     /// Link slug
     /// </summary>
     [JsonPropertyName("slug")]
     public required string Slug { get; init; }
-
-    /// <summary>
-    /// Link name
-    /// </summary>
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
-
-    /// <summary>
-    /// UUID
-    /// </summary>
-    [JsonPropertyName("uuid")]
-    public required string Uuid { get; init; }
 
     /// <summary>
     /// Parent ID if nested

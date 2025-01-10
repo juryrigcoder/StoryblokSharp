@@ -23,7 +23,7 @@ public class ObjectToInferredTypesConverter : JsonConverter<object>
             case JsonTokenType.String:
                 string? str = reader.GetString();
                 // Try to parse as DateTimeOffset if it looks like a date
-                if (str != null && str.Contains("T") && DateTimeOffset.TryParse(str, out var dt))
+                if (str != null && str.Contains('T') && DateTimeOffset.TryParse(str, out var dt))
                     return dt;
                 return str;
             case JsonTokenType.Null:

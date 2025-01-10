@@ -7,6 +7,7 @@ using StoryblokSharp.Models.RichText;
 using StoryblokSharp.Services.RichText;
 using StoryblokSharp.Services.RichText.NodeResolvers;
 using StoryblokSharp.Utilities.RichText;
+using StoryblokSharp.Components;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -126,7 +127,6 @@ class Program
         var serviceProvider = services.BuildServiceProvider();
         return serviceProvider.GetRequiredService<IStoryblokClient>();
     }
-
     static async Task DemonstrateFeaturesAsync(IStoryblokClient client)
     {
         try
@@ -137,7 +137,7 @@ class Program
             };
 
             var story = await client.GetStoryAsync<StoryContent>("home", parameters);
-            
+
             if (story?.Story?.Content?.Body != null)
             {
                 Console.WriteLine("\nProcessing rich text content from all components:");
@@ -158,7 +158,6 @@ class Program
                 Console.WriteLine($"Inner Error: {ex.InnerException.Message}");
         }
     }
-
     static void ProcessComponent(JsonElement component)
     {
         try
@@ -169,12 +168,22 @@ class Program
             if (component.TryGetProperty("wysiwyg", out var wysiwygElement))
             {
                 Console.WriteLine($"Found rich text content in {componentType}:");
-                var richTextField = JsonSerializer.Deserialize<RichTextField>(wysiwygElement.GetRawText());
-                if (richTextField != null)
+
+                var rawJson = wysiwygElement.GetRawText();
+                Console.WriteLine("Raw JSON structure:");
+                Console.WriteLine(rawJson);
+
+                var options = new JsonSerializerOptions
                 {
-                    var _content = richTextField.ToRichTextContent();
-                    OutputContentStructure(_content);
-                    var renderedContent = RenderRichTextContent(richTextField);
+                    PropertyNameCaseInsensitive = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                };
+
+                var richTextContent = JsonSerializer.Deserialize<RichTextContent>(rawJson, options);
+                if (richTextContent != null)
+                {
+                    OutputContentStructure(richTextContent);
+                    var renderedContent = RenderRichTextContent(richTextContent);
                     Console.WriteLine("\nRendered content:");
                     Console.WriteLine(renderedContent);
                     Console.WriteLine("-------------------");
@@ -204,11 +213,10 @@ class Program
             Console.WriteLine($"Error processing component: {ex.Message}");
         }
     }
-
-    static string RenderRichTextContent(RichTextField richTextField)
+    static string RenderRichTextContent(RichTextContent content)
     {
         var serviceCollection = new ServiceCollection();
-        
+
         // Register utility services
         serviceCollection.AddSingleton<StringBuilderCache>();
         serviceCollection.AddSingleton<IHtmlUtilities, HtmlUtilities>();
@@ -221,13 +229,44 @@ class Program
         {
             options.OptimizeImages = true;
             options.KeyedResolvers = true;
-            options.InvalidNodeHandling = StoryblokSharp.Services.RichText.InvalidNodeStrategy.Remove;
+            options.InvalidNodeHandling = StoryblokSharp.Services.RichText.InvalidNodeStrategy.Keep;
+            options.ImageOptions = new ImageOptimizationOptions
+            {
+                Loading = "lazy",
+                Width = 800,
+                Height = 600
+            };
+
+            // Setup custom resolver for links
+            options.CustomResolvers = new Dictionary<string, Func<IRichTextNode, string>>
+            {
+                ["link"] = node =>
+                {
+                    if (node.Attrs?.TryGetValue("href", out var href) == true)
+                    {
+                        var target = node.Attrs.TryGetValue("target", out var t) ? t?.ToString() : "_self";
+                        return $"<a href=\"{href}\" target=\"{target}\">{node.Text}</a>";
+                    }
+                    return node.Text ?? string.Empty;
+                }
+            };
         });
 
         // Configure HTML sanitizer options
-        serviceCollection.Configure<HtmlSanitizerOptions>(options => { });
+        serviceCollection.Configure<HtmlSanitizerOptions>(options =>
+        {
+            if (options.AllowedTags == null)
+                options.AllowedTags = new HashSet<string>();
 
-        // Register node resolvers
+            options.AllowedTags.Add("a");
+
+            if (options.AllowedAttributes == null)
+                options.AllowedAttributes = new Dictionary<string, HashSet<string>>();
+
+            options.AllowedAttributes["a"] = new HashSet<string> { "href", "target" };
+        });
+
+        // Register node resolvers in correct order
         serviceCollection.AddScoped<MarkNodeResolver>();
         serviceCollection.AddScoped<ImageNodeResolver>();
         serviceCollection.AddScoped<TextNodeResolver>();
@@ -240,15 +279,14 @@ class Program
 
         try
         {
-            var content = richTextField.ToRichTextContent();
             if (content == null)
             {
-                Console.WriteLine("Warning: Unable to convert rich text field to content");
+                Console.WriteLine("Warning: Rich text content is null");
                 return string.Empty;
             }
 
-            var renderedContent = renderer.Render(content);
-            return renderedContent;
+            var rendered = renderer.Render(content);
+            return rendered;
         }
         catch (Exception ex)
         {
@@ -256,7 +294,6 @@ class Program
             return string.Empty;
         }
     }
-
     static void OutputContentStructure(RichTextContent content, int level = 0)
     {
         var indent = new string(' ', level * 2);
@@ -267,7 +304,7 @@ class Program
         }
 
         Console.WriteLine($"{indent}Type: {content.Type}");
-        
+
         if (content.Content != null)
         {
             Console.WriteLine($"{indent}Children: {content.Content.Count()}");

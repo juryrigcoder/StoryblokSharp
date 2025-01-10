@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisMode>Recommended</AnalysisMode>
     <Nullable>enable</Nullable>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
     <Authors>Drew Heyworth</Authors>
     <Description>Storyblok integration library for .NET</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile> 

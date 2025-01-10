@@ -6,6 +6,7 @@ using StoryblokSharp.Services.Throttling;
 using StoryblokSharp.Http;
 using StoryblokSharp.Models.RichText;
 using System.Globalization;
+using StoryblokSharp.Components;
 
 namespace StoryblokSharp.Client;
 
@@ -19,7 +20,7 @@ public sealed class StoryblokClient : IStoryblokClient
     private readonly IThrottleService _throttle;
     private readonly IRichTextRenderer _richTextRenderer;
     private readonly StoryblokOptions _options;
-    private readonly IDictionary<string, int> _cacheVersions;
+    private readonly Dictionary<string, int> _cacheVersions;
     private bool _disposed;
 
     private const int DEFAULT_PAGE_SIZE = 25;

@@ -156,6 +156,7 @@ public class StoryblokHttpClientTests
                 ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>(async (_, token) =>
             {
+                await Task.Delay(1); // Simulate async work
                 cts.Cancel();
                 throw new TaskCanceledException();
             });

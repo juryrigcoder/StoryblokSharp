@@ -44,7 +44,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
             var node = new RichTextNode
             {
                 Type = "doc",
-                Content = content.Content.Select(MapContent).Where(n => n != null).ToList()
+                Content = content.Content.Select(MapContent).Where(n => n != null).Cast<RichTextNode>().ToList()
             };
 
             var html = ResolveNode(node);
@@ -52,6 +52,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
         }
         catch (Exception ex) when (!_options.InvalidNodeHandling.Equals(Models.RichText.InvalidNodeStrategy.Throw))
         {
+            Console.Error.WriteLine(ex.Message);
             return HandleInvalidContent();
         }
     }
@@ -78,10 +79,10 @@ public sealed class RichTextRenderer : IRichTextRenderer
             Type = nodeType,
             Text = content.Text,
             Attrs = content.Attrs,
-            Content = content.Content?.Select(MapContent).Where(n => n != null).ToList(),
+            Content = content.Content?.Select(MapContent).Where(n => n != null).Cast<IRichTextNode>().ToList(),
             Marks = content.Marks?.Select(mark => new MarkNode
             {
-                Type = mark.Type?.ToLowerInvariant(),
+                Type = (mark.Type ?? string.Empty).ToLowerInvariant(),
                 MarkType = Enum.Parse<MarkTypes>(mark.Type ?? "Text", ignoreCase: true),
                 Attrs = mark.Attrs,
                 Text = content.Text
@@ -131,6 +132,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
         }
         catch (Exception ex) when (!_options.InvalidNodeHandling.Equals(Models.RichText.InvalidNodeStrategy.Throw))
         {
+            Console.Error.WriteLine(ex.Message);
             return HandleInvalidContent();
         }
     }

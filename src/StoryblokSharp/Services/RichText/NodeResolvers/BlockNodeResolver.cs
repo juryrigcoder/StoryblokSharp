@@ -42,12 +42,12 @@ public string Resolve(IRichTextNode node)
     }
 
     // Handle special node types first
-    if (node.Type == nameof(BlockTypes.Image).ToLower())
+    if (string.Equals(node.Type, nameof(BlockTypes.Image), StringComparison.OrdinalIgnoreCase))
     {
         return _imageResolver.Resolve(node);
     }
 
-    if (node.Type == nameof(TextTypes.Text).ToLower())
+    if (string.Equals(node.Type, nameof(TextTypes.Text), StringComparison.OrdinalIgnoreCase))
     {
         // Special handling for text with marks
         if (node is RichTextNode richNode && richNode.Marks?.Any() == true)
@@ -113,7 +113,7 @@ private string ResolveContent(IRichTextNode node)
     }
 }
 
-    private string? DetermineTag(IRichTextNode node)
+    private static string? DetermineTag(IRichTextNode node)
     {
         return node.Type.ToLowerInvariant() switch
         {

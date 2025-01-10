@@ -9,6 +9,7 @@ using StoryblokSharp.Services.Cache;
 using StoryblokSharp.Services.Throttling;
 using StoryblokSharp.Client;
 using StoryblokSharp.Utilities.RichText;
+using StoryblokSharp.Components;
 
 namespace StoryblokSharp.Configuration;
 

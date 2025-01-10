@@ -7,6 +7,7 @@ using StoryblokSharp.Models.Stories;
 using StoryblokSharp.Services.Cache;
 using StoryblokSharp.Services.Throttling;
 using StoryblokSharp.Http;
+using StoryblokSharp.Components;
 
 namespace StoryblokSharp.Tests;
 

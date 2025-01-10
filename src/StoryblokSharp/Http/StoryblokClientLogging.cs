@@ -4,7 +4,7 @@ namespace StoryblokSharp.Http;
 
 public abstract partial class StoryblokClientLogging
 {
-    protected ILogger? _logger;
+    private ILogger? _logger;
 
     protected StoryblokClientLogging(ILogger? logger = null)
     {

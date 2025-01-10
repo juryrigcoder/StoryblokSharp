@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using StoryblokSharp.Models.RichText;
 using StoryblokSharp.Services.RichText.NodeResolvers;
+using StoryblokSharp.Components;
 
 namespace StoryblokSharp.Services.RichText;
 

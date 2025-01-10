@@ -1,3 +1,4 @@
+namespace StoryblokSharp.Models.RichText;
 /// <summary>
 /// Interface for component rendering
 /// </summary>

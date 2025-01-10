@@ -238,7 +238,7 @@ public class StoryblokClientBuilder
         {
             AccessToken = _accessToken,
             OAuthToken = _oauthToken,
-            Region = (Models.Region)_region,
+            Region = (Models.Common.Region)_region,
             UseHttps = _useHttps,
             MaxRetries = _maxRetries,
             Timeout = _timeout,

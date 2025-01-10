@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
-using StoryblokSharp.Services.RichText;
+using StoryblokSharp.Models.RichText;
+
+namespace StoryblokSharp.Components;
 
 /// <summary>
 /// Resolves Storyblok components to Blazor components

@@ -107,7 +107,7 @@ class Program
         services.Configure<HtmlSanitizerOptions>(options => { });
 
         // Configure Storyblok client
-        new StoryblokClientBuilder(services)
+        await Task.Run(() => new StoryblokClientBuilder(services)
             .WithAccessToken(accessToken)
             .WithCache(options => options
                 .WithType(StoryblokSharp.Models.Cache.CacheType.Memory)
@@ -121,7 +121,7 @@ class Program
                 await Task.CompletedTask;
                 return response;
             })
-            .Build();
+            .Build());
 
         var serviceProvider = services.BuildServiceProvider();
         return serviceProvider.GetRequiredService<IStoryblokClient>();
@@ -297,11 +297,11 @@ class Program
 public class StoryContent
 {
     [JsonPropertyName("_uid")]
-    public string Uid { get; set; }
+    public string? Uid { get; set; }
 
     [JsonPropertyName("body")]
-    public JsonElement[] Body { get; set; }
+    public JsonElement[]? Body { get; set; }
 
     [JsonPropertyName("component")]
-    public string Component { get; set; }
+    public string? Component { get; set; }
 }

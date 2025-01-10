@@ -5,7 +5,6 @@ using StoryblokSharp.Client;
 using StoryblokSharp.Models.Configuration;
 using StoryblokSharp.Models.Stories;
 using StoryblokSharp.Services.Cache;
-using StoryblokSharp.Services.RichText;
 using StoryblokSharp.Services.Throttling;
 using StoryblokSharp.Http;
 

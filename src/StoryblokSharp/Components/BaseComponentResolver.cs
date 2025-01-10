@@ -1,5 +1,4 @@
 using System.Text.Json;
-using StoryblokSharp.Services.RichText;
 using StoryblokSharp.Utilities;
 
 namespace StoryblokSharp.Components;

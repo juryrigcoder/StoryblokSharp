@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using StoryblokSharp.Models.Common;
 using StoryblokSharp.Models.Json;
 
 namespace StoryblokSharp.Models.Stories;
@@ -6,26 +7,13 @@ namespace StoryblokSharp.Models.Stories;
 /// <summary>
 /// Represents an asset in Storyblok
 /// </summary>
-public record Asset
+public record Asset : StoryblokEntity
 {
-    /// <summary>
-    /// Asset ID
-    /// </summary>
-    [JsonPropertyName("id")]
-    [JsonConverter(typeof(FlexibleNumberConverter))]
-    public required long Id { get; init; }
-
     /// <summary>
     /// Alternative text
     /// </summary>
     [JsonPropertyName("alt")]
     public string? Alt { get; init; }
-
-    /// <summary>
-    /// Asset name
-    /// </summary>
-    [JsonPropertyName("name")]
-    public string? Name { get; init; }
 
     /// <summary>
     /// Focus point

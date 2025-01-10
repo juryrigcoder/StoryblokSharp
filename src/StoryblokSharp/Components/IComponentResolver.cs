@@ -1,5 +1,5 @@
 
-namespace StoryblokSharp.Services.RichText;
+namespace StoryblokSharp.Components;
 
 /// <summary>
 /// Interface for component resolution

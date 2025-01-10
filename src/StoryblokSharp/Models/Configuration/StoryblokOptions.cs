@@ -1,4 +1,6 @@
 using StoryblokSharp.Services.RichText;
+using StoryblokSharp.Models.Common;
+using StoryblokSharp.Models.Cache;
 
 namespace StoryblokSharp.Models.Configuration;
 
@@ -25,7 +27,7 @@ public record StoryblokOptions
     /// <summary>
     /// Cache configuration
     /// </summary>
-    public Models.Cache.CacheOptions Cache { get; set; } = new();
+    public CacheOptions Cache { get; set; } = new();
 
     /// <summary>
     /// Custom HTTP response interceptor

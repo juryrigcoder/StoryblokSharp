@@ -30,6 +30,7 @@ public sealed class HtmlSanitizer : IHtmlSanitizer
         _options = options.Value;
 
         // Initialize frozen sets for performance
+        _allowedTags = _options.AllowedTags.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
         _allowedAttributes = _options.AllowedAttributes.ToFrozenDictionary(
             x => x.Key,
             x => x.Value.ToFrozenSet(StringComparer.OrdinalIgnoreCase),

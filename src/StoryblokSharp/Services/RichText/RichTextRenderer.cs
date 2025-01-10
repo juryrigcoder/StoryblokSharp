@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using StoryblokSharp.Models.RichText;
 using StoryblokSharp.Services.RichText.NodeResolvers;
+using StoryblokSharp.Components;
 
 namespace StoryblokSharp.Services.RichText;
 
@@ -35,7 +36,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
     {
         try
         {
-            if (content?.Content == null || !content.Content.Any())
+            if (content?.Content == null || content.Content.Length == 0)
             {
                 return string.Empty;
             }
@@ -65,7 +66,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
             Content = content.Content?.Select(MapContent).ToList(),
             Marks = content.Marks?.Select(mark => new MarkNode
             {
-                Type = mark.Type?.ToLowerInvariant(),
+                Type = (mark.Type ?? "text").ToLowerInvariant(),
                 MarkType = Enum.Parse<MarkTypes>(mark.Type ?? "Text", ignoreCase: true),
                 Attrs = mark.Attrs,
                 Text = content.Text
@@ -186,7 +187,7 @@ public sealed class RichTextRenderer : IRichTextRenderer
         return string.Empty;
     }
 
-    private bool IsValidNodeType(string? nodeType)
+    public static bool IsValidNodeType(string? nodeType)
     {
         if (string.IsNullOrEmpty(nodeType)) return false;
 

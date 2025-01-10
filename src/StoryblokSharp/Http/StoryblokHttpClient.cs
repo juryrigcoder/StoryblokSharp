@@ -12,23 +12,25 @@ namespace StoryblokSharp.Http;
 /// HTTP client for interacting with the Storyblok Content Delivery API (v2).
 /// Handles authentication, request retries, rate limiting, and response handling.
 /// </summary>
-public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
+public class StoryblokHttpClient : StoryblokClientLogging, IStoryblokHttpClient, IAsyncDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly StoryblokOptions _options;
     private readonly JsonSerializerOptions _jsonOptions;
     private bool _disposed;
-    private ILogger? _logger;
 
     /// <summary>
     /// Initializes a new instance of the StoryblokHttpClient.
     /// </summary>
     /// <param name="httpClient">The HttpClient instance used for making HTTP requests.</param>
     /// <param name="options">Configuration options for the Storyblok client.</param>
+    /// <param name="logger">Optional logger for the client.</param>
     /// <exception cref="ArgumentNullException">Thrown when httpClient or options is null.</exception>
     public StoryblokHttpClient(
         HttpClient httpClient,
-        IOptions<StoryblokOptions> options)
+        IOptions<StoryblokOptions> options,
+        ILogger? logger = null)
+        : base(logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options.Value ?? throw new ArgumentNullException(nameof(options));
@@ -51,15 +53,8 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
     }
 
     /// <summary>
-    /// Configures a logger for the client to enable detailed request/response logging.
+    /// Performs a GET request to the specified endpoint.
     /// </summary>
-    /// <param name="logger">The logger instance to use.</param>
-    public void SetLogger(ILogger logger)
-    {
-        _logger = logger;
-    }
-
-    /// <summary>
     /// Performs a GET request to the specified endpoint.
     /// </summary>
     /// <typeparam name="T">The type to deserialize the response into.</typeparam>
@@ -72,30 +67,26 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         IDictionary<string, string>? queryParams = null,
         CancellationToken cancellationToken = default) where T : class
     {
-        // Remove any leading slashes from endpoint for consistency
         endpoint = endpoint.TrimStart('/');
 
-        // Ensure endpoint starts with cdn/stories if it doesn't
         if (!endpoint.StartsWith("cdn/stories", StringComparison.OrdinalIgnoreCase))
         {
             endpoint = $"cdn/stories/{endpoint}";
         }
 
-        // Initialize query parameters and add access token if not provided
         queryParams ??= new Dictionary<string, string>();
         if (!queryParams.ContainsKey("token") && !string.IsNullOrEmpty(_options.AccessToken))
         {
             queryParams["token"] = _options.AccessToken;
         }
 
-        // Ensure there's a trailing slash on the base address
         if (_httpClient.BaseAddress?.ToString().EndsWith('/') == false)
         {
             _httpClient.BaseAddress = new Uri(_httpClient.BaseAddress + "/");
         }
 
         var url = BuildUrl(endpoint, queryParams);
-        _logger?.LogInformation($"Making GET request to: {url}");
+        SafeLog(logger => LogRequest(logger, "GET", url));
 
         using var response = await SendWithRetryAsync(
             () => _httpClient.GetAsync(url, cancellationToken),
@@ -117,7 +108,7 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         object data,
         CancellationToken cancellationToken = default) where T : class
     {
-        _logger?.LogInformation($"Making POST request to: {endpoint}");
+        SafeLog(logger => LogRequest(logger, "POST", endpoint));
         using var response = await SendWithRetryAsync(
             () => _httpClient.PostAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken),
             cancellationToken);
@@ -138,7 +129,7 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         object data,
         CancellationToken cancellationToken = default) where T : class
     {
-        _logger?.LogInformation($"Making PUT request to: {endpoint}");
+        SafeLog(logger => LogRequest(logger, "PUT", endpoint));
         using var response = await SendWithRetryAsync(
             () => _httpClient.PutAsJsonAsync(endpoint, data, _jsonOptions, cancellationToken),
             cancellationToken);
@@ -157,7 +148,7 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         string endpoint,
         CancellationToken cancellationToken = default) where T : class
     {
-        _logger?.LogInformation($"Making DELETE request to: {endpoint}");
+        SafeLog(logger => LogRequest(logger, "DELETE", endpoint));
         using var response = await SendWithRetryAsync(
             () => _httpClient.DeleteAsync(endpoint, cancellationToken),
             cancellationToken);
@@ -176,7 +167,6 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         if (!queryParams.Any())
             return endpoint;
 
-        // Build query string with proper URL encoding for both keys and values
         var queryString = string.Join("&", queryParams
             .Where(p => !string.IsNullOrEmpty(p.Value))
             .Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
@@ -203,37 +193,32 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         {
             try
             {
-                _logger?.LogDebug($"Attempting request (attempt {retryCount + 1})...");
+                SafeLog(logger => LogRequestAttempt(logger, retryCount + 1));
                 var response = await request();
-                _logger?.LogDebug($"Response Status: {response.StatusCode}");
+                SafeLog(logger => LogResponseStatus(logger, response.StatusCode));
 
-                // Apply response interceptor if configured
                 if (_options.ResponseInterceptor != null)
                 {
-                    _logger?.LogDebug("Applying response interceptor...");
                     response = await _options.ResponseInterceptor(response);
                 }
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger?.LogDebug("Request successful!");
                     return response;
                 }
 
-                // Handle rate limiting (429 Too Many Requests)
                 if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                 {
                     if (retryCount >= _options.MaxRetries)
                     {
-                        _logger?.LogWarning("Max retries reached for rate limit response");
+                        SafeLog(logger => LogMaxRetriesReached(logger));
                         throw new StoryblokApiException(response);
                     }
 
-                    // Use the Retry-After header if provided
                     if (response.Headers.RetryAfter?.Delta is not null)
                     {
                         delay = response.Headers.RetryAfter.Delta.Value;
-                        _logger?.LogInformation($"Rate limited. Waiting {delay.TotalSeconds} seconds before retry...");
+                        SafeLog(logger => LogRateLimitWait(logger, delay.TotalSeconds));
                         await Task.Delay(delay, cancellationToken);
                         retryCount++;
                         continue;
@@ -242,24 +227,24 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
                     throw new StoryblokApiException(response);
                 }
 
-                _logger?.LogWarning($"Unexpected status code: {response.StatusCode}");
+                SafeLog(logger => LogUnexpectedStatusCode(logger, response.StatusCode));
                 throw new StoryblokApiException(response);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger?.LogInformation("Request cancelled by user");
+                SafeLog(logger => LogRequestCancelled(logger));
                 throw;
             }
             catch (HttpRequestException ex)
             {
-                _logger?.LogError($"HTTP request failed: {ex.Message}");
+                SafeLog(logger => LogHttpRequestError(logger, ex.Message, ex));
                 if (retryCount >= _options.MaxRetries)
                 {
-                    _logger?.LogError("Max retries reached");
+                    SafeLog(logger => LogMaxRetriesReachedError(logger));
                     throw new StoryblokApiException("Request failed after maximum retries", ex);
                 }
 
-                _logger?.LogInformation($"Waiting {delay.TotalSeconds} seconds before retry...");
+                SafeLog(logger => LogRateLimitWait(logger, delay.TotalSeconds));
                 await Task.Delay(delay, cancellationToken);
                 retryCount++;
             }
@@ -279,23 +264,20 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         CancellationToken cancellationToken) where T : class
     {
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        _logger?.LogInformation($"Response Content: {content}");
+        SafeLog(logger => LogResponseContent(logger, content));
 
         try
         {
             var result = JsonSerializer.Deserialize<T>(content, _jsonOptions);
             if (result == null)
             {
-                _logger?.LogError("Deserialization resulted in null object");
                 throw new StoryblokApiException("Response was null");
             }
-            _logger?.LogDebug($"Successfully deserialized to type {typeof(T).Name}");
             return result;
         }
         catch (JsonException ex)
         {
-            _logger?.LogError($"JSON Deserialization error: {ex.Message}");
-            _logger?.LogError($"Content that failed to deserialize: {content}");
+            SafeLog(logger => LogDeserializationError(logger, ex.Message, ex));
             throw new StoryblokApiException("Failed to deserialize response", ex);
         }
     }
@@ -309,6 +291,7 @@ public class StoryblokHttpClient : IStoryblokHttpClient, IAsyncDisposable
         {
             _disposed = true;
             GC.SuppressFinalize(this);
+            await Task.CompletedTask;
         }
     }
 }

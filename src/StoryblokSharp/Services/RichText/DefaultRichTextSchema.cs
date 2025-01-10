@@ -69,20 +69,20 @@ public class DefaultRichTextSchema : RichTextSchema
     {
         var attrs = new Dictionary<string, string>();
         
-        if (node.Attrs.TryGetValue("href", out var href))
+        if (node.Attrs != null && node.Attrs.TryGetValue("href", out var href))
             attrs["href"] = href.ToString()!;
 
-        var linkType = node.Attrs.GetValueOrDefault("linktype", "url").ToString();
+        var linkType = node.Attrs?.GetValueOrDefault("linktype", "url").ToString();
         
         if (linkType == "email" && attrs.TryGetValue("href", out var emailHref))
             attrs["href"] = $"mailto:{emailHref}";
 
-        if (node.Attrs.TryGetValue("anchor", out var anchor))
+        if (node.Attrs != null && node.Attrs.TryGetValue("anchor", out var anchor))
         {
             attrs["href"] = $"{attrs.GetValueOrDefault("href", "")}#{anchor}";
         }
 
-        if (node.Attrs.TryGetValue("target", out var target))
+        if (node.Attrs != null && node.Attrs.TryGetValue("target", out var target))
             attrs["target"] = target.ToString()!;
 
         return attrs;

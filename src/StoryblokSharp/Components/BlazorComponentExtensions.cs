@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
-using StoryblokSharp.Services.RichText;
 
 namespace StoryblokSharp.Components;
 

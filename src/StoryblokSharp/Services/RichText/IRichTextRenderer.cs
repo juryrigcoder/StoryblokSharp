@@ -1,5 +1,5 @@
 using StoryblokSharp.Models.RichText;
-using StoryblokSharp.Services.RichText;
+using StoryblokSharp.Components;
 
 /// <summary>
 /// Interface for rich text rendering functionality

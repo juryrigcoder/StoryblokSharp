@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using StoryblokSharp.Client;
 using StoryblokSharp.Configuration;
 using StoryblokSharp.Models.Stories;
@@ -10,6 +9,7 @@ using StoryblokSharp.Utilities.RichText;
 using StoryblokSharp.Components;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using StoryblokSharp.Models.Cache;
 
 class Program
 {
@@ -26,92 +26,20 @@ class Program
 
         await DemonstrateFeaturesAsync(client);
     }
-
+    private static IServiceProvider? _serviceProvider;
     static async Task<IStoryblokClient> InitializeStoryblokClientAsync(string accessToken)
     {
         // Set up dependency injection
         var services = new ServiceCollection();
-
-        // Register utility services as singletons
-        services.AddSingleton<StringBuilderCache>();
-        services.AddSingleton<IHtmlUtilities, HtmlUtilities>();
-        services.AddSingleton<IAttributeUtilities, AttributeUtilities>();
-        services.AddSingleton<IHtmlSanitizer, HtmlSanitizer>();
-        services.AddSingleton<IRichTextSchema, DefaultRichTextSchema>();
-
-        // Register node resolvers in correct order
-        services.AddScoped<MarkNodeResolver>(sp =>
-            new MarkNodeResolver(
-                sp.GetRequiredService<IHtmlUtilities>(),
-                sp.GetRequiredService<IAttributeUtilities>(),
-                sp.GetRequiredService<IOptions<RichTextOptions>>(),
-                sp.GetRequiredService<StringBuilderCache>()
-            ));
-
-        services.AddScoped<ImageNodeResolver>(sp =>
-            new ImageNodeResolver(
-                sp.GetRequiredService<IHtmlUtilities>(),
-                sp.GetRequiredService<IAttributeUtilities>(),
-                sp.GetRequiredService<StringBuilderCache>(),
-                sp.GetRequiredService<IOptions<RichTextOptions>>()
-            ));
-
-        services.AddScoped<TextNodeResolver>(sp =>
-            new TextNodeResolver(
-                sp.GetRequiredService<IHtmlUtilities>(),
-                sp.GetRequiredService<MarkNodeResolver>(),
-                sp.GetRequiredService<IOptions<RichTextOptions>>()
-            ));
-
-        services.AddScoped<BlockNodeResolver>(sp =>
-            new BlockNodeResolver(
-                sp.GetRequiredService<IHtmlUtilities>(),
-                sp.GetRequiredService<StringBuilderCache>(),
-                sp.GetRequiredService<IAttributeUtilities>(),
-                sp.GetRequiredService<IOptions<RichTextOptions>>(),
-                sp.GetRequiredService<TextNodeResolver>(),
-                sp.GetRequiredService<ImageNodeResolver>(),
-                sp.GetRequiredService<MarkNodeResolver>()
-            ));
-
-        services.AddScoped<EmojiResolver>(sp =>
-            new EmojiResolver(
-                sp.GetRequiredService<IAttributeUtilities>()
-            ));
-
-        // Add rich text renderer with all its dependencies
-        services.AddScoped<IRichTextRenderer, RichTextRenderer>(sp =>
-            new RichTextRenderer(
-                sp.GetRequiredService<BlockNodeResolver>(),
-                sp.GetRequiredService<MarkNodeResolver>(),
-                sp.GetRequiredService<TextNodeResolver>(),
-                sp.GetRequiredService<ImageNodeResolver>(),
-                sp.GetRequiredService<IHtmlSanitizer>(),
-                sp.GetRequiredService<IOptions<RichTextOptions>>()
-            ));
-
-        // Configure rich text options
-        services.Configure<RichTextOptions>(options =>
-        {
-            options.OptimizeImages = true;
-            options.KeyedResolvers = true;
-            options.InvalidNodeHandling = StoryblokSharp.Services.RichText.InvalidNodeStrategy.Remove;
-            options.ImageOptions = new ImageOptimizationOptions
-            {
-                Loading = "lazy",
-                Width = 800,
-                Height = 600
-            };
-        });
-
-        // Configure HTML sanitizer options
-        services.Configure<HtmlSanitizerOptions>(options => { });
+        
+        // Configure all services
+        ConfigureServices(services);
 
         // Configure Storyblok client
-        await Task.Run(() => new StoryblokClientBuilder(services)
+        var clientBuilder = new StoryblokClientBuilder(services)
             .WithAccessToken(accessToken)
             .WithCache(options => options
-                .WithType(StoryblokSharp.Models.Cache.CacheType.Memory)
+                .WithType(CacheType.Memory)
                 .WithDefaultExpiration(TimeSpan.FromMinutes(5)))
             .WithMaxRetries(3)
             .WithRateLimit(5)
@@ -121,11 +49,16 @@ class Program
                 Console.WriteLine($"Response Status: {response.StatusCode}");
                 await Task.CompletedTask;
                 return response;
-            })
-            .Build());
+            });
 
-        var serviceProvider = services.BuildServiceProvider();
-        return serviceProvider.GetRequiredService<IStoryblokClient>();
+        // Build the client first to register its services
+        await Task.Run(() => clientBuilder.Build());
+
+        // Now build the service provider after all services are registered
+        _serviceProvider = services.BuildServiceProvider();
+
+        // Get the client from the service provider
+        return _serviceProvider.GetRequiredService<IStoryblokClient>();
     }
     static async Task DemonstrateFeaturesAsync(IStoryblokClient client)
     {
@@ -215,21 +148,55 @@ class Program
     }
     static string RenderRichTextContent(RichTextContent content)
     {
-        var serviceCollection = new ServiceCollection();
+        if (_serviceProvider == null)
+        {
+            throw new InvalidOperationException("Service provider has not been initialized.");
+        }
 
-        // Register utility services
-        serviceCollection.AddSingleton<StringBuilderCache>();
-        serviceCollection.AddSingleton<IHtmlUtilities, HtmlUtilities>();
-        serviceCollection.AddSingleton<IAttributeUtilities, AttributeUtilities>();
-        serviceCollection.AddSingleton<IHtmlSanitizer, HtmlSanitizer>();
-        serviceCollection.AddSingleton<IRichTextSchema, DefaultRichTextSchema>();
+        var renderer = _serviceProvider.GetRequiredService<IRichTextRenderer>();
+
+        try
+        {
+            if (content == null)
+            {
+                Console.WriteLine("Warning: Rich text content is null");
+                return string.Empty;
+            }
+
+            var rendered = renderer.Render(content);
+            return rendered;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering rich text: {ex.Message}");
+            return string.Empty;
+        }
+    }
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        // Register utility services as singletons
+        services.AddSingleton<StringBuilderCache>();
+        services.AddSingleton<IHtmlUtilities, HtmlUtilities>();
+        services.AddSingleton<IAttributeUtilities, AttributeUtilities>();
+        services.AddSingleton<IHtmlSanitizer, HtmlSanitizer>();
+        services.AddSingleton<IRichTextSchema, DefaultRichTextSchema>();
+
+        // Register node resolvers in correct order
+        services.AddScoped<MarkNodeResolver>();
+        services.AddScoped<ImageNodeResolver>();
+        services.AddScoped<TextNodeResolver>();
+        services.AddScoped<BlockNodeResolver>();
+        services.AddScoped<EmojiResolver>();
+
+        // Add rich text renderer
+        services.AddScoped<IRichTextRenderer, RichTextRenderer>();
 
         // Configure rich text options
-        serviceCollection.Configure<RichTextOptions>(options =>
+        services.Configure<RichTextOptions>(options =>
         {
             options.OptimizeImages = true;
             options.KeyedResolvers = true;
-            options.InvalidNodeHandling = StoryblokSharp.Services.RichText.InvalidNodeStrategy.Keep;
+            options.InvalidNodeHandling = StoryblokSharp.Services.RichText.InvalidNodeStrategy.Remove;
             options.ImageOptions = new ImageOptimizationOptions
             {
                 Loading = "lazy",
@@ -253,7 +220,7 @@ class Program
         });
 
         // Configure HTML sanitizer options
-        serviceCollection.Configure<HtmlSanitizerOptions>(options =>
+        services.Configure<HtmlSanitizerOptions>(options =>
         {
             if (options.AllowedTags == null)
                 options.AllowedTags = new HashSet<string>();
@@ -265,34 +232,6 @@ class Program
 
             options.AllowedAttributes["a"] = new HashSet<string> { "href", "target" };
         });
-
-        // Register node resolvers in correct order
-        serviceCollection.AddScoped<MarkNodeResolver>();
-        serviceCollection.AddScoped<ImageNodeResolver>();
-        serviceCollection.AddScoped<TextNodeResolver>();
-        serviceCollection.AddScoped<BlockNodeResolver>();
-        serviceCollection.AddScoped<EmojiResolver>();
-        serviceCollection.AddScoped<IRichTextRenderer, RichTextRenderer>();
-
-        using var serviceProvider = serviceCollection.BuildServiceProvider();
-        var renderer = serviceProvider.GetRequiredService<IRichTextRenderer>();
-
-        try
-        {
-            if (content == null)
-            {
-                Console.WriteLine("Warning: Rich text content is null");
-                return string.Empty;
-            }
-
-            var rendered = renderer.Render(content);
-            return rendered;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error rendering rich text: {ex.Message}");
-            return string.Empty;
-        }
     }
     static void OutputContentStructure(RichTextContent content, int level = 0)
     {

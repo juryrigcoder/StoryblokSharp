@@ -51,22 +51,62 @@ static async Task Main(string[] args)
 
 ### 2. Service Configuration
 
-The `InitializeStoryblokClientAsync` method sets up all necessary services:
+The program uses a centralized service configuration approach with a shared service provider for improved performance and consistency. The configuration is handled by the `ConfigureServices` method:
 
 ```csharp
-// Register utility services
-services.AddSingleton<StringBuilderCache>();
-services.AddSingleton<IHtmlUtilities, HtmlUtilities>();
-services.AddSingleton<IAttributeUtilities, AttributeUtilities>();
-services.AddSingleton<IHtmlSanitizer, HtmlSanitizer>();
-services.AddSingleton<IRichTextSchema, DefaultRichTextSchema>();
+private static void ConfigureServices(IServiceCollection services)
+{
+    // Register utility services as singletons
+    services.AddSingleton<StringBuilderCache>();
+    services.AddSingleton<IHtmlUtilities, HtmlUtilities>();
+    services.AddSingleton<IAttributeUtilities, AttributeUtilities>();
+    services.AddSingleton<IHtmlSanitizer, HtmlSanitizer>();
+    services.AddSingleton<IRichTextSchema, DefaultRichTextSchema>();
 
-// Register node resolvers
-services.AddScoped<MarkNodeResolver>();
-services.AddScoped<ImageNodeResolver>();
-services.AddScoped<TextNodeResolver>();
-services.AddScoped<BlockNodeResolver>();
-services.AddScoped<EmojiResolver>();
+    // Register node resolvers
+    services.AddScoped<MarkNodeResolver>();
+    services.AddScoped<ImageNodeResolver>();
+    services.AddScoped<TextNodeResolver>();
+    services.AddScoped<BlockNodeResolver>();
+    services.AddScoped<EmojiResolver>();
+
+    // Add rich text renderer
+    services.AddScoped<IRichTextRenderer, RichTextRenderer>();
+
+    // Configure rich text and HTML sanitizer options
+    ConfigureRichTextOptions(services);
+    ConfigureHtmlSanitizerOptions(services);
+}
+```
+
+### 3. Client Initialization
+
+The `InitializeStoryblokClientAsync` method initializes the Storyblok client and sets up the shared service provider:
+
+```csharp
+private static async Task<IStoryblokClient> InitializeStoryblokClientAsync(string accessToken)
+{
+    var services = new ServiceCollection();
+    ConfigureServices(services);
+
+    // Configure and build the Storyblok client
+    var clientBuilder = new StoryblokClientBuilder(services)
+        .WithAccessToken(accessToken)
+        .WithCache(options => options
+            .WithType(CacheType.Memory)
+            .WithDefaultExpiration(TimeSpan.FromMinutes(5)))
+        .WithMaxRetries(3)
+        .WithRateLimit(5)
+        .WithHttps();
+
+    // Build the client first to register its services
+    await Task.Run(() => clientBuilder.Build());
+
+    // Build the shared service provider
+    _serviceProvider = services.BuildServiceProvider();
+
+    return _serviceProvider.GetRequiredService<IStoryblokClient>();
+}
 ```
 
 ### 3. Rich Text Processing
@@ -129,19 +169,18 @@ static void ProcessComponent(JsonElement component)
 
 ### RenderRichTextContent
 
-Renders rich text content to HTML:
+Renders rich text content to HTML using the shared service provider:
 
 ```csharp
-static string RenderRichTextContent(RichTextField richTextField)
+static string RenderRichTextContent(RichTextContent content)
 {
-    // Set up services
-    var serviceCollection = new ServiceCollection();
-    // ... configure services ...
+    if (_serviceProvider == null)
+    {
+        throw new InvalidOperationException("Service provider has not been initialized.");
+    }
 
-    using var serviceProvider = serviceCollection.BuildServiceProvider();
-    var renderer = serviceProvider.GetRequiredService<IRichTextRenderer>();
-
-    return renderer.Render(richTextField.ToRichTextContent());
+    var renderer = _serviceProvider.GetRequiredService<IRichTextRenderer>();
+    return renderer.Render(content);
 }
 ```
 

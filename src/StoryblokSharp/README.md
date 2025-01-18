@@ -241,7 +241,135 @@ services.AddStoryblokClient(builder => builder
 
 ## Rich Text Rendering
 
-The library includes a powerful rich text renderer with support for custom resolvers:
+The library includes a powerful rich text renderer with support for custom resolvers and comprehensive node handling. The rendering system is built around specialized resolvers that handle different types of content:
+
+### Block Node Resolver
+Handles structural elements of the rich text content:
+
+```csharp
+// Handles block-level elements like paragraphs, lists, and headings
+var content = new RichTextField
+{
+    Type = "doc",
+    Content = new[]
+    {
+        new RichTextNode
+        {
+            Type = "paragraph",
+            Content = new[] { /* child nodes */ }
+        },
+        new RichTextNode
+        {
+            Type = "heading",
+            Attrs = new Dictionary<string, object> { { "level", 2 } },
+            Content = new[] { /* child nodes */ }
+        }
+    }
+};
+```
+
+Supported block types include:
+- Document (root container)
+- Paragraph (p)
+- Bullet List (ul)
+- Ordered List (ol)
+- List Item (li)
+- Quote (blockquote)
+- Code Block (pre)
+- Heading (h1-h6)
+- Horizontal Rule (hr)
+- Hard Break (br)
+
+### Mark Node Resolver
+Handles inline text formatting and styling:
+
+```csharp
+// Example of text with multiple marks
+var textNode = new TextNode
+{
+    Text = "Styled text",
+    Marks = new[]
+    {
+        new MarkNode { MarkType = MarkTypes.Bold },
+        new MarkNode
+        {
+            MarkType = MarkTypes.Link,
+            Attrs = new Dictionary<string, object>
+            {
+                { "href", "https://example.com" },
+                { "target", "_blank" }
+            }
+        }
+    }
+};
+```
+
+Supported mark types:
+- Bold/Strong
+- Italic
+- Strike
+- Underline
+- Code
+- Link
+- Styled (custom styles)
+- Superscript
+- Subscript
+- Text Style (classes)
+- Highlight
+
+### Image Node Resolver
+Handles image rendering with optimization capabilities:
+
+```csharp
+services.Configure<RichTextOptions>(options =>
+{
+    options.OptimizeImages = true;
+    options.ImageOptions = new ImageOptimizationOptions
+    {
+        Width = 800,
+        Height = 600,
+        Loading = "lazy",
+        Class = "optimized-image",
+        SrcSet = new[]
+        {
+            new SrcSetEntry { Width = 400 },
+            new SrcSetEntry { Width = 800 }
+        },
+        Sizes = new[]
+        {
+            "(max-width: 400px) 100vw",
+            "800px"
+        }
+    }
+});
+```
+
+### Text Node Resolver
+Handles basic text content with HTML encoding:
+
+```csharp
+// Simple text node
+var node = new TextNode
+{
+    Type = "text",
+    Text = "Hello, world!"
+};
+
+// Text with marks
+var styledNode = new TextNode
+{
+    Type = "text",
+    Text = "Important text",
+    Marks = new[]
+    {
+        new MarkNode { MarkType = MarkTypes.Bold }
+    }
+};
+```
+
+### Configuration Options
+
+Configure the rich text renderer with various options:
 
 ```csharp
 services.Configure<RichTextOptions>(options =>
@@ -256,6 +384,9 @@ services.Configure<RichTextOptions>(options =>
         MarkTypes.Link
     };
 });
+```
+
+The resolver system is extensible, allowing you to create custom resolvers for specific content types:
 ```
 
 ## Blazor Integration

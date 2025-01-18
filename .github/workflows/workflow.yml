@@ -89,5 +89,7 @@ jobs:
         with:
           tag: v${{ needs.build.outputs.version }}
           name: Release v${{ needs.build.outputs.version }}
+          bodyFile: "CHANGELOG.md"
           artifacts: "artifacts/*.nupkg"
+          generateReleaseNotes: true
           token: ${{ secrets.NUGET_PACKAGE_TOKEN }}
